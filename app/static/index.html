@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central SSO Portal — Identity & Access Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+  <!-- 1. DEDICATED SSO ADMIN LOGIN VIEW -->
+  <div id="login-screen" class="login-wrapper">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-brand-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <div>
+          <h2>Central SSO Console</h2>
+          <p class="login-subtitle">Multi-Platform Identity Provider • PostgreSQL</p>
+        </div>
+      </div>
+
+      <div class="login-notice">
+        <span class="notice-icon">🛡️</span>
+        <span>Administrator Access Only. Enter administrator credentials to manage users, global roles, and connected platforms.</span>
+      </div>
+
+      <form id="admin-login-form">
+        <div class="form-group">
+          <label>Administrator Email or Username</label>
+          <input type="text" id="admin-login-identifier" required placeholder="admin@example.org or admin" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="admin-login-password" required placeholder="••••••••••••" autocomplete="current-password">
+        </div>
+        <div id="login-error-msg" class="login-error hidden"></div>
+        <button type="submit" class="btn btn-primary btn-block" id="btn-admin-login-submit">
+          <span>Sign In to Admin Console</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <span>Connected to <strong>sso_db</strong> (PostgreSQL)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. LOGGED-IN SSO ADMIN MANAGEMENT DASHBOARD -->
+  <div id="admin-dashboard" class="app-layout hidden">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">SSO Central</span>
+          <span class="brand-subtitle">Multi-Platform IAM</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" data-tab="users" id="tab-users-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span>Users & Global Roles</span>
+        </button>
+        <button class="nav-item" data-tab="platforms" id="tab-platforms-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+          <span>Platforms & Domains</span>
+        </button>
+        <button class="nav-item" data-tab="api-hub" id="tab-api-hub-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+          <span>API Hub & Docs</span>
+        </button>
+        <button class="nav-item" data-tab="tester" id="tab-tester-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <span>Platform Login Tester</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-pill">
+          <div class="user-avatar" id="admin-avatar">A</div>
+          <div class="user-meta">
+            <span class="admin-name" id="admin-display-name">Admin</span>
+            <span class="admin-badge">GLOBAL ADMIN</span>
+          </div>
+        </div>
+        <button class="btn btn-outline btn-sm btn-logout" id="btn-logout" title="Sign out of SSO console">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1 id="page-title">Users & Global Roles</h1>
+          <p id="page-subtitle">Central user directory. Users are allotted Administrator or Standard User.</p>
+        </div>
+        <div id="header-actions">
+          <button class="btn btn-primary" id="btn-add-user">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Add User</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB 1: USERS -->
+      <section class="tab-pane active" id="pane-users">
+        <!-- Stats Row -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <span class="stat-label">Total Users</span>
+            <span class="stat-value" id="stat-total-users">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Administrators</span>
+            <span class="stat-value" id="stat-total-admins">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Standard Users</span>
+            <span class="stat-value" id="stat-total-standard">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Connected Platforms</span>
+            <span class="stat-value" id="stat-total-platforms">0</span>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="user-search-input" placeholder="Search by name, email, or username...">
+          </div>
+          <select id="user-global-role-filter">
+            <option value="">All Global Roles</option>
+            <option value="admin">Administrator</option>
+            <option value="standard">Standard User</option>
+          </select>
+        </div>
+
+        <!-- Users Table -->
+        <div class="card table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>User ID</th>
+                <th>Global Role</th>
+                <th>Account Status</th>
+                <th>Created</th>
+                <th class="actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body">
+              <tr><td colspan="6" class="loading-cell">Loading users...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 2: PLATFORMS & DOMAINS -->
+      <section class="tab-pane" id="pane-platforms">
+        <div class="card client-integration-card">
+          <div class="client-card-header">
+            <div>
+              <h3>Connected Client Platforms</h3>
+              <p>Applications, domains, and portals that authenticate through this Central SSO</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-add-platform">+ Add Platform</button>
+          </div>
+
+          <div class="platforms-grid" id="platforms-grid-container">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: API HUB & DEVELOPER CENTER -->
+      <section class="tab-pane" id="pane-api-hub">
+        <div class="api-hub-container">
+          <!-- Integration Guide Hero Banner -->
+          <div class="integration-hero-card" id="api-integration-guide">
+            <span class="hero-badge">🚀 DEVELOPER INTEGRATION BLUEPRINT</span>
+            <h2 class="integration-hero-title">How to Connect Any Website or Portal to Central SSO</h2>
+            <p class="integration-hero-desc">
+              Want to add a new website (e.g. <strong>Agrotutor</strong>, <strong>e-Agrology</strong>, or any custom client portal) to this SSO?
+              Follow this 5-step integration process. Central SSO handles single identity & global roles; your platform retains its custom subroles & project permissions.
+            </p>
+
+            <div class="guide-steps-grid">
+              <!-- Step 1 -->
+              <div class="guide-step-card">
+                <div class="guide-step-top">
+                  <div class="step-num-circle">1</div>
+                  <span class="step-num-title">Register Platform in SSO</span>
+                </div>
+                <div class="guide-step-body">
+                  Go to <strong>Platforms & Domains</strong> in this console. Click <code>+ Add Platform</code>, set your platform slug (e.g. <code>agrotutor</code>) and allowed domains (e.g. <code>https://revamp.agrotutor.co,http://localhost:3000</code>).
+                  Save and copy your unique <strong>Platform API Key</strong>.
+                </div>
+              </div>
+
+              <!-- Step 2 -->
+              <div class="guide-step-card">
+                <div class="guide-step-top">
+                  <div class="step-num-circle">2</div>
+                  <span class="step-num-title">Set Client System Environment</span>
+                </div>
+                <div class="guide-step-body">
+                  Add the SSO connection variables to your client application's <code>.env</code> file:
+                  <div class="code-snippet-box">
+                    <div class="code-snippet-header">
+                      <span class="code-snippet-lang">CLIENT .ENV</span>
+                      <button class="btn-copy-sm" onclick="copyToClipboard('SSO_BASE_URL=http://localhost:8005\nSSO_APP_ID=agrotutor\nSSO_API_KEY=agrotutor-api-secret-key-2026', '.env snippet')">Copy</button>
+                    </div>
+                    <pre class="code-snippet-pre">SSO_BASE_URL="http://localhost:8005"
+SSO_APP_ID="agrotutor"
+SSO_API_KEY="agrotutor-api-secret-key-2026"</pre>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 3 -->
+              <div class="guide-step-card">
+                <div class="guide-step-top">
+                  <div class="step-num-circle">3</div>
+                  <span class="step-num-title">Delegate Login to SSO API</span>
+                </div>
+                <div class="guide-step-body">
+                  In your client application's login handler, forward user credentials to <code>POST /api/sso/auth/login</code>.
+                  SSO checks passwords in PostgreSQL and issues a signed JWT containing <code>user_id</code> and <code>global_role</code>.
+                  <div class="code-snippet-box">
+                    <div class="code-snippet-header">
+                      <span class="code-snippet-lang">PYTHON / FASTAPI EX.</span>
+                      <button class="btn-copy-sm" onclick="copyToClipboard('res = httpx.post(f\'{SSO_URL}/api/sso/auth/login\', json={\'identifier\': email, \'password\': password, \'app_id\': SSO_APP_ID})\ndata = res.json()', 'Python snippet')">Copy</button>
+                    </div>
+                    <pre class="code-snippet-pre">res = httpx.post(f"{SSO_URL}/api/sso/auth/login", json={
+    "identifier": email_or_username,
+    "password": password,
+    "app_id": SSO_APP_ID
+})
+# Returns token, user_id, and global_role</pre>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 4 -->
+              <div class="guide-step-card">
+                <div class="guide-step-top">
+                  <div class="step-num-circle">4</div>
+                  <span class="step-num-title">Roles vs Local Subroles</span>
+                </div>
+                <div class="guide-step-body">
+                  <strong>Crucial Architecture Rule:</strong>
+                  <br>• <strong>Global Role</strong>: (<code>admin</code> or <code>standard</code>) is managed here in Central SSO.
+                  <br>• <strong>Subroles & Permissions</strong>: (e.g. <code>Project Manager</code>, <code>Surveyor</code> on e-Agrology; <code>Logic Manager</code> on Agrotutor) are stored in <em>your own platform's database</em> mapped to the user's <code>user_id</code>.
+                </div>
+              </div>
+
+              <!-- Step 5 -->
+              <div class="guide-step-card">
+                <div class="guide-step-top">
+                  <div class="step-num-circle">5</div>
+                  <span class="step-num-title">Directory Sync via API Key</span>
+                </div>
+                <div class="guide-step-body">
+                  To list users in your client portal or dropdowns, fetch directly from SSO using your <code>X-SSO-Api-Key</code>:
+                  <div class="code-snippet-box">
+                    <div class="code-snippet-header">
+                      <span class="code-snippet-lang">cURL / HTTP</span>
+                      <button class="btn-copy-sm" onclick="copyToClipboard('curl -H \'X-SSO-Api-Key: agrotutor-api-secret-key-2026\' http://localhost:8005/api/sso/users', 'cURL')">Copy</button>
+                    </div>
+                    <pre class="code-snippet-pre">GET /api/sso/users
+Header: X-SSO-Api-Key: {SSO_API_KEY}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- API Hub Toolbar -->
+          <div class="api-toolbar">
+            <div class="api-search-wrapper">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="api-search-input" placeholder="Search API by method, path, or feature keyword...">
+            </div>
+            <div class="api-categories">
+              <button class="cat-pill active" data-cat="all">All APIs (14)</button>
+              <button class="cat-pill" data-cat="auth">Auth & Session</button>
+              <button class="cat-pill" data-cat="users">User Directory</button>
+              <button class="cat-pill" data-cat="platforms">Platforms & Domains</button>
+            </div>
+          </div>
+
+          <!-- API Endpoint Cards -->
+          <div class="api-cards-list" id="api-cards-container">
+
+            <!-- API 1: Platform Login -->
+            <div class="api-item-card" data-cat="auth" data-keywords="login authenticate password client user eagrology agrotutor">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-post">POST</span>
+                  <span class="api-endpoint-path">/api/sso/auth/login</span>
+                  <span class="api-auth-badge auth-public">🌐 Client Public Endpoint</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-login')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Primary SSO authentication endpoint used by connected client platforms (e-Agrology, Agrotutor, etc.) to verify credentials and issue a signed session JWT containing user identity and global role.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Request Payload (JSON)</span>
+                    <pre class="json-display-box">{
+  "identifier": "simnan@eagrology.in",
+  "password": "UserPassword123!",
+  "app_id": "eagrology"
+}</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Live Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "user_id": "USR10482",
+    "email": "simnan@eagrology.in",
+    "username": "simnan_k",
+    "phone": "+919876543210",
+    "full_name": "Simnan Khan",
+    "global_role": "standard",
+    "role": "standard",
+    "role_label": "Standard User",
+    "app_id": "eagrology",
+    "is_active": true
+  }
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-login">curl -X POST http://localhost:8005/api/sso/auth/login -H "Content-Type: application/json" -d '{"identifier":"user@example.com","password":"pw","app_id":"agrotutor"}'</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-login')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 2: Verify Token -->
+            <div class="api-item-card" data-cat="auth" data-keywords="verify validate token jwt session permissions claims">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-post">POST</span>
+                  <span class="api-endpoint-path">/api/sso/auth/verify</span>
+                  <span class="api-auth-badge auth-public">🌐 Token Verification</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-verify')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Validates an existing SSO JWT token, ensuring it has not expired and the account remains active. Returns complete user profile, assigned global role, subroles, and permissions.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Request Payload (JSON)</span>
+                    <pre class="json-display-box">{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "valid": true,
+  "user": {
+    "user_id": "USR10482",
+    "email": "simnan@eagrology.in",
+    "username": "simnan_k",
+    "full_name": "Simnan Khan",
+    "global_role": "standard",
+    "role": "standard",
+    "role_label": "Standard User",
+    "app_id": "eagrology",
+    "subroles": [],
+    "permissions": [],
+    "is_active": true
+  }
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-verify">curl -X POST http://localhost:8005/api/sso/auth/verify -H "Content-Type: application/json" -d '{"token":"&lt;jwt_token&gt;"}'</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-verify')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 3: Get Current User (Me) -->
+            <div class="api-item-card" data-cat="auth" data-keywords="me profile session whoami bearer current">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-get">GET</span>
+                  <span class="api-endpoint-path">/api/sso/auth/me</span>
+                  <span class="api-auth-badge auth-key">🔑 Bearer Token Header</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-me')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Retrieves the user profile and session permissions using an <code>Authorization: Bearer &lt;token&gt;</code> header.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Request Headers</span>
+                    <pre class="json-display-box">Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "valid": true,
+  "user": {
+    "user_id": "USR00001",
+    "email": "admin@example.org",
+    "username": "admin",
+    "full_name": "Global Administrator",
+    "global_role": "admin",
+    "role": "admin",
+    "role_label": "Administrator",
+    "app_id": "sso_admin",
+    "subroles": [],
+    "permissions": ["sso.admin.full_access"],
+    "is_active": true
+  }
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-me">curl -H "Authorization: Bearer &lt;token&gt;" http://localhost:8005/api/sso/auth/me</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-me')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 4: SSO Admin Login -->
+            <div class="api-item-card" data-cat="auth" data-keywords="admin login console portal dashboard management">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-post">POST</span>
+                  <span class="api-endpoint-path">/api/sso/auth/admin-login</span>
+                  <span class="api-auth-badge auth-admin">🛡️ Administrator Only</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-admin-login')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Restricted login endpoint for SSO Console Administrators. Standard Users are strictly denied access here.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Request Payload (JSON)</span>
+                    <pre class="json-display-box">{
+  "identifier": "admin@example.org",
+  "password": "Admin@12345"
+}</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "user_id": "USR00001",
+    "email": "admin@example.org",
+    "username": "admin",
+    "full_name": "Global Administrator",
+    "global_role": "admin",
+    "role_label": "Administrator"
+  }
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-admin-login">curl -X POST http://localhost:8005/api/sso/auth/admin-login -H "Content-Type: application/json" -d '{"identifier":"admin@example.org","password":"Admin@12345"}'</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-admin-login')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 5: List Users (Directory Sync) -->
+            <div class="api-item-card" data-cat="users" data-keywords="users list directory sync fetch members x-sso-api-key">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-get">GET</span>
+                  <span class="api-endpoint-path">/api/sso/users</span>
+                  <span class="api-auth-badge auth-key">🔑 X-SSO-Api-Key or Admin Token</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-get-users')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Central User Directory API. Connected platforms pass their <code>X-SSO-Api-Key</code> header to fetch the complete user catalog with their global roles (<code>admin</code> or <code>standard</code>).
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Request Headers & Query Params</span>
+                    <pre class="json-display-box">Headers:
+  X-SSO-Api-Key: agrotutor-api-secret-key-2026
+
+Query Parameters (Optional):
+  ?search=simnan
+  &global_role=standard
+  &include_inactive=true</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "users": [
+    {
+      "user_id": "USR00001",
+      "email": "admin@example.org",
+      "username": "admin",
+      "full_name": "Global Administrator",
+      "global_role_id": "admin",
+      "global_role": "admin",
+      "global_role_label": "Administrator",
+      "is_active": true,
+      "created_on": "2026-10-14T05:20:00"
+    },
+    {
+      "user_id": "USR10482",
+      "email": "simnan@eagrology.in",
+      "username": "simnan_k",
+      "full_name": "Simnan Khan",
+      "global_role_id": "standard",
+      "global_role": "standard",
+      "global_role_label": "Standard User",
+      "is_active": true,
+      "created_on": "2026-10-14T06:15:30"
+    }
+  ],
+  "count": 2
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-get-users">curl -H "X-SSO-Api-Key: agrotutor-api-secret-key-2026" http://localhost:8005/api/sso/users</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-get-users')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 6: Get User Details -->
+            <div class="api-item-card" data-cat="users" data-keywords="get user single id details profile">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-get">GET</span>
+                  <span class="api-endpoint-path">/api/sso/users/{user_id}</span>
+                  <span class="api-auth-badge auth-key">🔑 X-SSO-Api-Key or Admin Token</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-get-user-id')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Retrieves complete profile details for a specific user ID.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Path Parameter</span>
+                    <pre class="json-display-box">user_id: USR10482</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "user_id": "USR10482",
+  "email": "simnan@eagrology.in",
+  "username": "simnan_k",
+  "phone": "+919876543210",
+  "full_name": "Simnan Khan",
+  "global_role_id": "standard",
+  "global_role": "standard",
+  "global_role_label": "Standard User",
+  "is_active": true,
+  "created_on": "2026-10-14T06:15:30",
+  "updated_on": "2026-10-14T06:15:30"
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-get-user-id">curl -H "X-SSO-Api-Key: &lt;key&gt;" http://localhost:8005/api/sso/users/USR10482</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-get-user-id')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 7: Create User -->
+            <div class="api-item-card" data-cat="users" data-keywords="create user add new member register global role">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-post">POST</span>
+                  <span class="api-endpoint-path">/api/sso/users</span>
+                  <span class="api-auth-badge auth-key">🔑 X-SSO-Api-Key or Admin Token</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-create-user')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Provisions a new user into the centralized PostgreSQL identity database. Automatically hashes password with bcrypt.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Request Payload (JSON)</span>
+                    <pre class="json-display-box">{
+  "full_name": "Rajesh Sharma",
+  "email": "rajesh@agrotutor.co",
+  "username": "rajesh_s",
+  "password": "InitialPassword123!",
+  "global_role_id": "standard"
+}</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">201 Created</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "user_id": "USR48291",
+  "email": "rajesh@agrotutor.co",
+  "username": "rajesh_s",
+  "full_name": "Rajesh Sharma",
+  "global_role_id": "standard",
+  "global_role": "standard",
+  "global_role_label": "Standard User",
+  "is_active": true,
+  "created_on": "2026-10-14T12:00:00"
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-create-user">curl -X POST http://localhost:8005/api/sso/users -H "X-SSO-Api-Key: &lt;key&gt;" -H "Content-Type: application/json" -d '{"full_name":"Rajesh","email":"rajesh@test.co","password":"pw","global_role_id":"standard"}'</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-create-user')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 8: Update User -->
+            <div class="api-item-card" data-cat="users" data-keywords="update user edit put patch global role status">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-put">PUT</span>
+                  <span class="api-endpoint-path">/api/sso/users/{user_id}</span>
+                  <span class="api-auth-badge auth-key">🔑 X-SSO-Api-Key or Admin Token</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-update-user')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Updates user details, email, username, active status, or switches their global role (between <code>standard</code> and <code>admin</code>).
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Request Payload (JSON)</span>
+                    <pre class="json-display-box">{
+  "full_name": "Rajesh Sharma (Updated)",
+  "email": "rajesh@agrotutor.co",
+  "username": "rajesh_sharma",
+  "global_role_id": "standard",
+  "is_active": true
+}</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "user_id": "USR48291",
+  "email": "rajesh@agrotutor.co",
+  "username": "rajesh_sharma",
+  "full_name": "Rajesh Sharma (Updated)",
+  "global_role_id": "standard",
+  "global_role": "standard",
+  "global_role_label": "Standard User",
+  "is_active": true,
+  "updated_on": "2026-10-14T12:05:00"
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-update-user">curl -X PUT http://localhost:8005/api/sso/users/USR48291 -H "X-SSO-Api-Key: &lt;key&gt;" -H "Content-Type: application/json" -d '{"full_name":"Rajesh Sharma","is_active":true}'</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-update-user')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 9: Reset Password -->
+            <div class="api-item-card" data-cat="users" data-keywords="password reset change credentials security">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-post">POST</span>
+                  <span class="api-endpoint-path">/api/sso/users/{user_id}/reset-password</span>
+                  <span class="api-auth-badge auth-key">🔑 X-SSO-Api-Key or Admin Token</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-reset-pw')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Directly sets a new bcrypt-hashed password for the target user.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Request Payload (JSON)</span>
+                    <pre class="json-display-box">{
+  "new_password": "NewSecretPassword2026!"
+}</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "success": true,
+  "user_id": "USR48291",
+  "message": "Password updated successfully."
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-reset-pw">curl -X POST http://localhost:8005/api/sso/users/USR48291/reset-password -H "X-SSO-Api-Key: &lt;key&gt;" -H "Content-Type: application/json" -d '{"new_password":"NewPassword123!"}'</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-reset-pw')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 10: Delete User -->
+            <div class="api-item-card" data-cat="users" data-keywords="delete remove user account purge">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-delete">DELETE</span>
+                  <span class="api-endpoint-path">/api/sso/users/{user_id}</span>
+                  <span class="api-auth-badge auth-admin">🛡️ Administrator Only</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-delete-user')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Permanently removes a user account from Central SSO PostgreSQL.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Path Parameter</span>
+                    <pre class="json-display-box">user_id: USR48291</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "deleted": true,
+  "user_id": "USR48291"
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-delete-user">curl -X DELETE http://localhost:8005/api/sso/users/USR48291 -H "Authorization: Bearer &lt;admin_token&gt;"</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-delete-user')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 11: List Platforms -->
+            <div class="api-item-card" data-cat="platforms" data-keywords="platforms domains apps list api keys allowed">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-get">GET</span>
+                  <span class="api-endpoint-path">/api/sso/platforms</span>
+                  <span class="api-auth-badge auth-key">🔑 X-SSO-Api-Key or Admin Token</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-list-platforms')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Lists all registered client platforms, allowed CORS domains, and client API keys.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Request Headers</span>
+                    <pre class="json-display-box">X-SSO-Api-Key: eagrology-api-secret-key-2026
+or
+Authorization: Bearer &lt;admin_token&gt;</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "platforms": [
+    {
+      "app_id": "eagrology",
+      "name": "e-Agrology FormBuilder",
+      "description": "Form building, data collection and reporting platform",
+      "allowed_domains": "https://eagrology-revamp.indevconsultancy.in,http://localhost:5173",
+      "api_key": "eagrology-api-secret-key-2026",
+      "is_active": true
+    },
+    {
+      "app_id": "agrotutor",
+      "name": "Agrotutor Platform",
+      "description": "Agricultural advisory, logic engines and tutoring platform",
+      "allowed_domains": "https://revamp.agrotutor.co,http://localhost:3000",
+      "api_key": "agrotutor-api-secret-key-2026",
+      "is_active": true
+    }
+  ]
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-list-platforms">curl -H "X-SSO-Api-Key: eagrology-api-secret-key-2026" http://localhost:8005/api/sso/platforms</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-list-platforms')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 12: Create Platform -->
+            <div class="api-item-card" data-cat="platforms" data-keywords="create platform register app new website domain">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-post">POST</span>
+                  <span class="api-endpoint-path">/api/sso/platforms</span>
+                  <span class="api-auth-badge auth-admin">🛡️ Administrator Only</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-create-platform')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Registers a new client platform in Central SSO and auto-generates an isolated <code>api_key</code>.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Request Payload (JSON)</span>
+                    <pre class="json-display-box">{
+  "app_id": "agrotutor",
+  "name": "Agrotutor Platform",
+  "allowed_domains": "https://revamp.agrotutor.co,http://localhost:3000",
+  "description": "Agricultural decision support & advisory platform"
+}</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">201 Created</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "app_id": "agrotutor",
+  "name": "Agrotutor Platform",
+  "description": "Agricultural decision support & advisory platform",
+  "allowed_domains": "https://revamp.agrotutor.co,http://localhost:3000",
+  "api_key": "agrotutor-7a4f91b3e82d1c5a90e4f21",
+  "is_active": true,
+  "created_on": "2026-10-14T12:30:00"
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-create-platform">curl -X POST http://localhost:8005/api/sso/platforms -H "Authorization: Bearer &lt;admin_token&gt;" -H "Content-Type: application/json" -d '{"app_id":"agrotutor","name":"Agrotutor","allowed_domains":"https://revamp.agrotutor.co"}'</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-create-platform')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 13: Edit Platform (Requested by user) -->
+            <div class="api-item-card" data-cat="platforms" data-keywords="edit platform update connection put domains active status">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-put">PUT</span>
+                  <span class="api-endpoint-path">/api/sso/platforms/{app_id}</span>
+                  <span class="api-auth-badge auth-key">🔑 X-SSO-Api-Key or Admin Token</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-edit-platform')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Updates an existing platform connection: modifies platform display name, allowed domains list, description, or activates/deactivates connection.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Request Payload (JSON)</span>
+                    <pre class="json-display-box">{
+  "name": "Agrotutor Platform v2",
+  "description": "Updated advisory engine and crop knowledge base",
+  "allowed_domains": "https://revamp.agrotutor.co,http://localhost:3000,http://staging.agrotutor.co",
+  "is_active": true
+}</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "app_id": "agrotutor",
+  "name": "Agrotutor Platform v2",
+  "description": "Updated advisory engine and crop knowledge base",
+  "allowed_domains": "https://revamp.agrotutor.co,http://localhost:3000,http://staging.agrotutor.co",
+  "api_key": "agrotutor-api-secret-key-2026",
+  "is_active": true,
+  "updated_on": "2026-10-14T17:50:51"
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-edit-platform">curl -X PUT http://localhost:8005/api/sso/platforms/agrotutor -H "Authorization: Bearer &lt;admin_token&gt;" -H "Content-Type: application/json" -d '{"name":"Agrotutor v2","allowed_domains":"https://revamp.agrotutor.co,http://localhost:3000"}'</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-edit-platform')">Copy Command</button>
+              </div>
+            </div>
+
+            <!-- API 14: Delete Platform -->
+            <div class="api-item-card" data-cat="platforms" data-keywords="delete platform unlink remove connection">
+              <div class="api-header-row">
+                <div class="api-route-group">
+                  <span class="method-tag method-delete">DELETE</span>
+                  <span class="api-endpoint-path">/api/sso/platforms/{app_id}</span>
+                  <span class="api-auth-badge auth-admin">🛡️ Administrator Only</span>
+                </div>
+                <div class="api-card-actions">
+                  <button class="btn btn-sm btn-outline" onclick="copyCurl('curl-delete-platform')">Copy cURL</button>
+                </div>
+              </div>
+              <div class="api-card-content">
+                <p class="api-summary-text">
+                  Unlinks a platform and revokes its API key and authentication permissions.
+                </p>
+                <div class="api-req-res-grid">
+                  <div class="pane-column">
+                    <span class="pane-column-title">Path Parameter</span>
+                    <pre class="json-display-box">app_id: agrotutor</pre>
+                  </div>
+                  <div class="pane-column">
+                    <span class="pane-column-title">
+                      <span>Response Result</span>
+                      <span class="status-badge-inline">200 OK</span>
+                    </span>
+                    <pre class="json-display-box res-box">{
+  "deleted": true,
+  "app_id": "agrotutor"
+}</pre>
+                  </div>
+                </div>
+              </div>
+              <div class="api-card-actions-bar">
+                <span class="quick-curl-preview" id="curl-delete-platform">curl -X DELETE http://localhost:8005/api/sso/platforms/agrotutor -H "Authorization: Bearer &lt;admin_token&gt;"</span>
+                <button class="btn-copy-sm" onclick="copyCurl('curl-delete-platform')">Copy Command</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: PLATFORM LOGIN TESTER -->
+      <section class="tab-pane" id="pane-tester">
+        <div class="card client-integration-card">
+          <div class="client-card-header">
+            <div>
+              <h3>Platform Authentication Simulator</h3>
+              <p>Simulate how e-Agrology or Agrotutor authenticates credentials and receives the user's identity and global role</p>
+            </div>
+          </div>
+
+          <div class="test-auth-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Target Platform</label>
+                <select id="test-platform-select">
+                  <option value="eagrology">e-Agrology (FormBuilder)</option>
+                  <option value="agrotutor">Agrotutor</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Username / Email</label>
+                <input type="text" id="test-login-id" placeholder="e.g. simnan@eagrology.in or admin">
+              </div>
+              <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="test-login-pw" placeholder="User password">
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btn-run-test-login">Simulate Platform Login</button>
+          </div>
+
+          <div id="test-result-box" class="test-result-box hidden"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Add User Modal -->
+  <div class="modal-backdrop" id="modal-add-user">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Create New User in SSO</h3>
+        <button class="modal-close" data-close="modal-add-user">&times;</button>
+      </div>
+      <form id="form-add-user">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="add-user-name" required placeholder="e.g. Simnan Khan">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" id="add-user-email" required placeholder="simnan@eagrology.in">
+            </div>
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" id="add-user-username" placeholder="simnan_k">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Initial Password</label>
+              <input type="password" id="add-user-password" required placeholder="Min 6 characters">
+            </div>
+            <div class="form-group">
+              <label>Global Role</label>
+              <select id="add-user-global-role" required>
+                <option value="standard" selected>Standard User</option>
+                <option value="admin">Administrator (Can manage SSO)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-add-user">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal-backdrop" id="modal-edit-user">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit User & Global Role</h3>
+        <button class="modal-close" data-close="modal-edit-user">&times;</button>
+      </div>
+      <form id="form-edit-user">
+        <input type="hidden" id="edit-user-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="edit-user-name" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" id="edit-user-email" required>
+            </div>
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" id="edit-user-username">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Global Role</label>
+              <select id="edit-user-global-role" required>
+                <option value="standard">Standard User</option>
+                <option value="admin">Administrator</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Account Status</label>
+              <select id="edit-user-status">
+                <option value="1">Active</option>
+                <option value="0">Deactivated</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-edit-user">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Platform Modal -->
+  <div class="modal-backdrop" id="modal-add-platform">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Register New Connected Platform</h3>
+        <button class="modal-close" data-close="modal-add-platform">&times;</button>
+      </div>
+      <form id="form-add-platform">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Platform App ID (slug)</label>
+            <input type="text" id="add-platform-id" required placeholder="e.g. agrotutor">
+          </div>
+          <div class="form-group">
+            <label>Platform Name</label>
+            <input type="text" id="add-platform-name" required placeholder="e.g. Agrotutor Platform">
+          </div>
+          <div class="form-group">
+            <label>Allowed Domains (Comma-separated)</label>
+            <input type="text" id="add-platform-domains" required placeholder="https://revamp.agrotutor.co,http://localhost:3000">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="add-platform-desc" placeholder="Platform description..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-add-platform">Cancel</button>
+          <button type="submit" class="btn btn-primary">Register Platform</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Platform Modal -->
+  <div class="modal-backdrop" id="modal-edit-platform">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit Platform Connection</h3>
+        <button class="modal-close" data-close="modal-edit-platform">&times;</button>
+      </div>
+      <form id="form-edit-platform">
+        <input type="hidden" id="edit-platform-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Platform App ID (Slug)</label>
+            <input type="text" id="edit-platform-id-display" disabled class="input-disabled">
+          </div>
+          <div class="form-group">
+            <label>Platform Display Name</label>
+            <input type="text" id="edit-platform-name" required placeholder="e.g. Agrotutor Platform">
+          </div>
+          <div class="form-group">
+            <label>Allowed Domains (Comma-separated)</label>
+            <input type="text" id="edit-platform-domains" required placeholder="https://revamp.agrotutor.co,http://localhost:3000">
+            <small class="field-hint">Domains and URLs permitted for CORS and SSO authentication tokens.</small>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="edit-platform-desc" placeholder="Platform description..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Connection Status</label>
+            <select id="edit-platform-status">
+              <option value="1">Active (Permit SSO Sign-ins)</option>
+              <option value="0">Suspended / Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-edit-platform">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Platform Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div class="modal-backdrop" id="modal-reset-pw">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Reset User Password</h3>
+        <button class="modal-close" data-close="modal-reset-pw">&times;</button>
+      </div>
+      <form id="form-reset-pw">
+        <input type="hidden" id="reset-pw-user-id">
+        <div class="modal-body">
+          <p id="reset-pw-user-label" class="text-muted"></p>
+          <div class="form-group">
+            <label>New Password</label>
+            <input type="password" id="reset-pw-input" required placeholder="Minimum 6 characters">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-reset-pw">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
